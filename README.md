@@ -1,6 +1,6 @@
 # gymloggerapp.com
 
-The website for Gym Logger. Static HTML and CSS, no build step, hosted on
+The website for Routine, the gym logger. Static HTML and CSS, no build step, hosted on
 GitHub Pages at https://gymloggerapp.com.
 
 ## Pages
@@ -39,3 +39,15 @@ GitHub Pages at https://gymloggerapp.com.
 - [ ] Update the app: `LegalConfig.privacyURL` → `https://gymloggerapp.com/privacy.html`,
       `LegalConfig.termsURL` → `https://gymloggerapp.com/terms.html`, and set the
       same URLs in App Store Connect.
+
+## Exercise animations
+
+`assets/exercises/` holds six of the app's Lottie files, light and dark, for the
+reel on the home page. They are copies of
+`LiftPlan/Resources/ExerciseAnimations{,Dark}` — re-copy rather than edit if the
+art is ever replaced, or the site and the app will show different drawings of
+the same movement.
+
+**Licensing is unresolved.** The pack is licensed from VFE for use *in the app*;
+nothing shipped with it says whether a public marketing site is covered. Confirm
+before this goes live.

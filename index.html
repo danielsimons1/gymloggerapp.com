@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gym Logger — A training log that comes with the workout</title>
+  <title>Routine — The Gym Logger that trains with you</title>
   <meta name="description" content="Log every set, or start from one of 31 ready-made workouts ordered by your goal and the equipment you have. 250 exercises with animations, a rest timer on the Lock Screen, and charts of what you've lifted. iPhone.">
   <link rel="canonical" href="https://gymloggerapp.com/">
   <link rel="icon" href="/assets/favicon-32.png" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-  <meta property="og:title" content="Gym Logger">
-  <meta property="og:description" content="A training log that comes with the workout.">
+  <meta property="og:title" content="Routine">
+  <meta property="og:description" content="The Gym Logger that trains with you.">
   <meta property="og:image" content="https://gymloggerapp.com/assets/icon-512.png">
   <meta property="og:url" content="https://gymloggerapp.com/">
   <meta name="twitter:card" content="summary">
@@ -22,7 +22,7 @@
     <header class="site-header">
       <a class="brand" href="/">
         <img src="/assets/icon-rounded.png" alt="" width="32" height="32">
-        Gym Logger
+        Routine
       </a>
       <nav class="site-nav">
         <a href="#how">How it works</a>
@@ -34,7 +34,7 @@
     <main>
       <section class="hero">
         <div>
-          <h1>A training log that comes with the workout.</h1>
+          <h1>The Gym Logger that trains with you.</h1>
           <p class="lede">Log every set. Or start from a ready-made workout picked for your goal and the equipment you actually have — no program to find first.</p>
           <div class="button-row">
             <!-- TODO: replace with the App Store URL once the app is listed. -->
@@ -44,13 +44,13 @@
           <p class="fine">iPhone · Your first workouts are free.</p>
         </div>
         <div class="hero-art">
-          <img src="/assets/icon-512.png" alt="The Gym Logger app icon" width="280" height="280">
+          <img src="/assets/icon-512.png" alt="The Routine app icon" width="280" height="280">
         </div>
       </section>
 
       <section id="how">
         <h2>How it works</h2>
-        <p class="sub">Most logging apps hand you an empty screen and assume you brought a program. Gym Logger starts you on something sensible, then gets out of the way.</p>
+        <p class="sub">Most logging apps hand you an empty screen and assume you brought a program. Routine starts you on something sensible, remembers what you lifted, and gets out of the way.</p>
         <div class="steps">
           <div class="step">
             <h3>Answer nine questions</h3>
@@ -64,6 +64,19 @@
             <h3>Train, and it remembers</h3>
             <p>Every set you log comes back next time as the number to beat — and as a chart of how that lift has moved over months.</p>
           </div>
+        </div>
+      </section>
+
+      <section id="movements">
+        <h2>250 exercises, every one shown</h2>
+        <p class="sub">The same animations that play beside the set you're logging — so an unfamiliar name is never a reason to skip a movement. Six of them here; the other 244 are in the app.</p>
+        <div class="reel" id="reel">
+          <figure class="move"><div class="move-art" data-anim="barbell-back-squat"></div><figcaption>Barbell Back Squat</figcaption></figure>
+          <figure class="move"><div class="move-art" data-anim="barbell-bench-press-side-view"></div><figcaption>Barbell Bench Press</figcaption></figure>
+          <figure class="move"><div class="move-art" data-anim="barbell-deadlift"></div><figcaption>Barbell Deadlift</figcaption></figure>
+          <figure class="move"><div class="move-art" data-anim="regular-grip-pull-up"></div><figcaption>Pull Up</figcaption></figure>
+          <figure class="move"><div class="move-art" data-anim="dumbbell-bench-press"></div><figcaption>Dumbbell Bench Press</figcaption></figure>
+          <figure class="move"><div class="move-art" data-anim="barbell-bicep-curl"></div><figcaption>Barbell Bicep Curl</figcaption></figure>
         </div>
       </section>
 
@@ -122,7 +135,7 @@
     </main>
 
     <footer class="site-footer">
-      <div>© <span id="year">2026</span> Gym Logger</div>
+      <div>© <span id="year">2026</span> Routine</div>
       <div>
         <a href="/privacy.html">Privacy</a>
         <a href="/terms.html">Terms</a>
@@ -131,5 +144,67 @@
     </footer>
   </div>
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+  <!-- The exercise reel. Deferred and lazy on purpose: six Lottie files are
+       about 46KB gzipped for the scheme in use, and none of it is fetched
+       until the section is near the viewport — the hero must not wait on it. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
+  <script>
+  (function () {
+    var dark = window.matchMedia('(prefers-color-scheme: dark)');
+    var still = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var players = [];
+
+    function file(slug) {
+      // Two packs, one drawn for light grounds and one for dark — the same
+      // pair the app picks between. The figures are dark ink, so the light
+      // pack on a near-black page is a silhouette of nothing.
+      return '/assets/exercises/' + slug + (dark.matches ? '-dark' : '') + '.json';
+    }
+
+    function mount(el) {
+      var anim = lottie.loadAnimation({
+        container: el, renderer: 'svg', loop: !still.matches,
+        autoplay: !still.matches, path: file(el.dataset.anim)
+      });
+      // Reduced motion gets the pose rather than nothing: the midpoint frame
+      // is the one that says what the movement is, which is the same rule the
+      // app's own still frames are rendered on.
+      if (still.matches) {
+        anim.addEventListener('DOMLoaded', function () {
+          anim.goToAndStop(Math.floor(anim.totalFrames / 2), true);
+        });
+      }
+      players.push({ el: el, anim: anim });
+    }
+
+    function start() {
+      var reel = document.getElementById('reel');
+      if (!reel || !window.lottie) return;
+      var tiles = [].slice.call(reel.querySelectorAll('.move-art'));
+      if (!('IntersectionObserver' in window)) { tiles.forEach(mount); return; }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          io.unobserve(e.target);
+          mount(e.target);
+        });
+      }, { rootMargin: '200px' });
+      tiles.forEach(function (t) { io.observe(t); });
+    }
+
+    // Reload the other pack when the system flips, rather than leaving dark
+    // ink on a dark page until the next visit.
+    dark.addEventListener('change', function () {
+      players.splice(0).forEach(function (p) {
+        p.anim.destroy();
+        p.el.innerHTML = '';
+        mount(p.el);
+      });
+    });
+
+    if (document.readyState === 'complete') { start(); }
+    else { window.addEventListener('load', start); }
+  })();
+  </script>
 </body>
 </html>

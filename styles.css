@@ -1,4 +1,4 @@
-/* Gym Logger — gymloggerapp.com
+/* Routine — gymloggerapp.com
    One stylesheet, no build.
 
    The palette is the app icon's, so the site and the thing it's selling agree:
@@ -290,3 +290,38 @@ section .sub {
   .principles ul { columns: 1; }
   .site-nav a { margin-left: 12px; }
 }
+
+/* The exercise reel */
+
+.reel {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+.move {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 10px 10px 12px;
+  text-align: center;
+}
+
+/* Square, and reserved before the animation lands — a Lottie mounts into a
+   zero-height box otherwise and the whole section jumps when six of them
+   arrive at once. */
+.move-art {
+  aspect-ratio: 1;
+  width: 100%;
+}
+
+.move figcaption {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--subtle);
+}
+
+@media (max-width: 900px) { .reel { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 480px) { .reel { grid-template-columns: repeat(2, 1fr); } }
