@@ -44,12 +44,15 @@
           <p class="fine">iPhone · Your first workouts are free.</p>
         </div>
         <div class="hero-art">
-          <!-- The App Store preview, no audio track and none needed. `muted`
-               and `playsinline` are what make autoplay legal on iOS; without
-               either, Safari shows a poster and a play button instead. -->
+          <!-- The App Store preview, no audio track and none needed.
+               `muted` and `playsinline` are what make autoplay legal on iOS;
+               without either, Safari shows a poster and a play button.
+               `preload="auto"` matters as much: Safari honours a `metadata`
+               hint literally and sits on the poster frame waiting for a tap,
+               `autoplay` notwithstanding. It's 711KB — worth fetching. -->
           <video class="preview" width="270" height="585"
                  poster="/assets/preview-poster.jpg"
-                 autoplay muted loop playsinline preload="metadata"
+                 autoplay muted loop playsinline preload="auto"
                  aria-label="Routine on iPhone: picking a workout, logging sets, and finishing a session.">
             <source src="/assets/preview.mp4" type="video/mp4">
           </video>
@@ -218,6 +221,35 @@
       hero.autoplay = false;
       hero.controls = true;
       hero.pause();
+    } else if (hero) {
+      // The attribute is the request; this is the retry. `play()` returns a
+      // promise that *rejects* when a browser declines — Low Power Mode, a
+      // data-saver setting, a strict autoplay policy — and an unhandled
+      // rejection there is a silent poster with no way to know why.
+      //
+      // Muted is set again in script rather than trusted from the attribute:
+      // a page restored from the back/forward cache can come back unmuted,
+      // and an unmuted video is one no browser will start on its own.
+      var nudge = function () {
+        hero.muted = true;
+        var p = hero.play();
+        if (p && p.catch) { p.catch(function () { /* left on the poster */ }); }
+      };
+      nudge();
+      // If the browser refused, the first thing the visitor does counts as the
+      // gesture it was holding out for. Once only.
+      ['pointerdown', 'touchstart', 'keydown', 'scroll'].forEach(function (evt) {
+        window.addEventListener(evt, function once() {
+          ['pointerdown', 'touchstart', 'keydown', 'scroll'].forEach(function (e2) {
+            window.removeEventListener(e2, once);
+          });
+          if (hero.paused) { nudge(); }
+        }, { passive: true });
+      });
+      // A tab restored from the back/forward cache resumes paused.
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && hero.paused && !still.matches) { nudge(); }
+      });
     }
 
     if (document.readyState === 'complete') { start(); }
