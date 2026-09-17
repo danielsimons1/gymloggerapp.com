@@ -44,15 +44,23 @@
           <p class="fine">iPhone · Your first workouts are free.</p>
         </div>
         <div class="hero-art">
-          <!-- The App Store preview, no audio track and none needed.
-               `muted` and `playsinline` are what make autoplay legal on iOS;
-               without either, Safari shows a poster and a play button.
+          <!-- Not a player. This is a moving picture of the app, and it is
+               marked up as one: no controls, no picture-in-picture, no AirPlay
+               target, and `pointer-events: none` in the stylesheet so there is
+               nothing to tap. Safari's own start-playback overlay — the button
+               it draws over a blocked muted video even with no `controls` — is
+               hidden in CSS too, so a refusal falls back to the poster frame
+               rather than to a play button nobody was offered.
+               `muted` and `playsinline` are what make autoplay legal on iOS.
                `preload="auto"` matters as much: Safari honours a `metadata`
                hint literally and sits on the poster frame waiting for a tap,
                `autoplay` notwithstanding. It's 711KB — worth fetching. -->
           <video class="preview" width="270" height="585"
                  poster="/assets/preview-poster.jpg"
-                 autoplay muted loop playsinline preload="auto"
+                 autoplay muted loop playsinline webkit-playsinline
+                 preload="auto" tabindex="-1"
+                 disablepictureinpicture disableremoteplayback
+                 controlslist="nodownload nofullscreen noremoteplayback noplaybackrate"
                  aria-label="Routine on iPhone: picking a workout, logging sets, and finishing a session.">
             <source src="/assets/preview.mp4" type="video/mp4">
           </video>
@@ -214,14 +222,21 @@
     });
 
     // The hero video answers to the same preference the reel does: paused on
-    // its poster frame, with controls, rather than 26 seconds of movement
-    // somebody has asked the system not to show them.
+    // its poster frame rather than 26 seconds of movement somebody has asked
+    // the system not to show them. This is the ONE case that gets controls and
+    // a tappable surface — having opted out of the motion, they still need a
+    // way to opt back in — and `is-static` is what re-enables both.
     var hero = document.querySelector('.preview');
     if (hero && still.matches) {
       hero.autoplay = false;
       hero.controls = true;
+      hero.classList.add('is-static');
       hero.pause();
     } else if (hero) {
+      // Belt and braces: nothing sets these, but a restored page can carry
+      // state from a previous visit, and `controls` is the whole complaint.
+      hero.controls = false;
+      hero.removeAttribute('controls');
       // The attribute is the request; this is the retry. `play()` returns a
       // promise that *rejects* when a browser declines — Low Power Mode, a
       // data-saver setting, a strict autoplay policy — and an unhandled
@@ -236,19 +251,35 @@
         if (p && p.catch) { p.catch(function () { /* left on the poster */ }); }
       };
       nudge();
-      // If the browser refused, the first thing the visitor does counts as the
-      // gesture it was holding out for. Once only.
-      ['pointerdown', 'touchstart', 'keydown', 'scroll'].forEach(function (evt) {
-        window.addEventListener(evt, function once() {
-          ['pointerdown', 'touchstart', 'keydown', 'scroll'].forEach(function (e2) {
-            window.removeEventListener(e2, once);
-          });
-          if (hero.paused) { nudge(); }
-        }, { passive: true });
+      // `play()` at parse time can lose to the media pipeline not being ready
+      // yet — the promise rejects with NotSupportedError rather than a policy
+      // refusal, which looks identical from here. So ask again at each point
+      // the element has more of the file than it did before.
+      ['loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough'].forEach(function (evt) {
+        hero.addEventListener(evt, function () { if (hero.paused) { nudge(); } });
       });
-      // A tab restored from the back/forward cache resumes paused.
+      // If the browser refused, the first thing the visitor does counts as the
+      // gesture it was holding out for. Not once-only any more: Low Power Mode
+      // declines every attempt until a *real* gesture, and the first scroll of
+      // a page that hasn't finished loading sometimes isn't counted as one.
+      // Unhooked as soon as a play actually takes, so this costs nothing after.
+      var gestures = ['pointerdown', 'touchstart', 'touchend', 'keydown', 'scroll'];
+      var onGesture = function () { if (hero.paused) { nudge(); } };
+      gestures.forEach(function (evt) {
+        window.addEventListener(evt, onGesture, { passive: true });
+      });
+      hero.addEventListener('playing', function () {
+        gestures.forEach(function (evt) {
+          window.removeEventListener(evt, onGesture, { passive: true });
+        });
+      });
+      // A tab restored from the back/forward cache resumes paused, and on iOS
+      // comes back through `pageshow` rather than `visibilitychange`.
       document.addEventListener('visibilitychange', function () {
-        if (!document.hidden && hero.paused && !still.matches) { nudge(); }
+        if (!document.hidden && hero.paused) { nudge(); }
+      });
+      window.addEventListener('pageshow', function () {
+        if (hero.paused) { nudge(); }
       });
     }
 

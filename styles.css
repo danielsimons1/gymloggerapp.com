@@ -342,4 +342,40 @@ section .sub {
   background: #000;
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
   display: block;
+  /* It's a picture, not a player. Nothing to tap, nothing to focus, and no
+     long-press "Save Video" sheet on iOS. */
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Safari draws its own start-playback button over a video it declined to
+   autoplay — Low Power Mode, a data-saver setting, a strict policy — even
+   with no `controls` attribute anywhere. That button is the thing being
+   complained about: it makes a decorative loop look like a player that's
+   waiting on you. Hidden, so a refusal falls back to the poster frame and
+   the script's retries get on with it quietly. */
+.preview::-webkit-media-controls,
+.preview::-webkit-media-controls-panel,
+.preview::-webkit-media-controls-overlay-play-button,
+.preview::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0;
+}
+
+/* The one exception, set by the script: somebody who has asked the system for
+   reduced motion gets the video paused on its poster *with* controls, because
+   otherwise there is no way for them to watch it at all. */
+.preview.is-static {
+  pointer-events: auto;
+}
+
+.preview.is-static::-webkit-media-controls,
+.preview.is-static::-webkit-media-controls-panel,
+.preview.is-static::-webkit-media-controls-overlay-play-button,
+.preview.is-static::-webkit-media-controls-start-playback-button {
+  display: initial !important;
+  opacity: 1;
 }

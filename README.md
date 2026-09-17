@@ -51,3 +51,23 @@ the same movement.
 **Licensing is unresolved.** The pack is licensed from VFE for use *in the app*;
 nothing shipped with it says whether a public marketing site is covered. Confirm
 before this goes live.
+
+## The hero preview
+
+`assets/preview.mp4` is the App Store preview recording, and it is markup for a
+*picture*, not a player: no `controls`, `pointer-events: none`, PiP and AirPlay
+disabled, and Safari's own start-playback overlay hidden in CSS. If autoplay is
+declined the fallback is the poster frame, never a play button.
+
+Three things decline it, in rough order of how often they do:
+
+1. **Low Power Mode** on iOS and macOS — blocks every autoplay, including muted.
+   The script retries on the first real gesture (pointer, touch, key, scroll),
+   which is usually enough.
+2. **Reduce Motion** — honoured deliberately. That case *does* get controls and
+   a tappable surface (`.preview.is-static`), because a paused video with no
+   controls is unwatchable. If you're seeing a player on a normal visit, check
+   Settings → Accessibility → Motion first; it's the only path that adds one.
+3. **Safari → Settings → Websites → Auto-Play** set to "Never" for the site.
+
+To test the blocked path deliberately: Low Power Mode on, then reload.
