@@ -52,22 +52,34 @@ the same movement.
 nothing shipped with it says whether a public marketing site is covered. Confirm
 before this goes live.
 
-## The hero preview
+## The hero preview and the exercise reel
 
 `assets/preview.mp4` is the App Store preview recording, and it is markup for a
 *picture*, not a player: no `controls`, `pointer-events: none`, PiP and AirPlay
 disabled, and Safari's own start-playback overlay hidden in CSS. If autoplay is
-declined the fallback is the poster frame, never a play button.
+declined the fallback is the poster frame, never a play button. The script
+retries on every readiness event, on the first real gesture, on `pageshow`, and
+on a 12-second watchdog for the level-triggered states that fire nothing.
 
-Three things decline it, in rough order of how often they do:
+**There is no `prefers-reduced-motion` branch, and that is deliberate.** There
+used to be: it paused the video on frame 0 with controls, and froze the six
+Lottie tiles on a midpoint pose. It made the whole page look broken to anyone
+whose browser reported the preference — which includes people who set it for
+reasons unrelated to a silent, slow, flash-free 26-second loop, and several
+embedded and headless renderers that report it by default. If the preference is
+ever honoured again, honour it with something that still moves.
 
-1. **Low Power Mode** on iOS and macOS — blocks every autoplay, including muted.
-   The script retries on the first real gesture (pointer, touch, key, scroll),
-   which is usually enough.
-2. **Reduce Motion** — honoured deliberately. That case *does* get controls and
-   a tappable surface (`.preview.is-static`), because a paused video with no
-   controls is unwatchable. If you're seeing a player on a normal visit, check
-   Settings → Accessibility → Motion first; it's the only path that adds one.
-3. **Safari → Settings → Websites → Auto-Play** set to "Never" for the site.
+**The reel is not lazy any more either.** It mounted on an IntersectionObserver,
+whose root is the viewport — so anything reporting a zero-area viewport (a
+background tab at first paint, an embedded renderer) never got an intersection
+and the tiles stayed empty forever, silently. Six files, ~46KB gzipped, below
+the fold: mounted outright.
+
+Three things still decline autoplay, in rough order of how often:
+
+1. **Low Power Mode** on iOS and macOS — blocks every autoplay, muted included.
+   The gesture retry usually catches it.
+2. **Safari → Settings → Websites → Auto-Play** set to "Never" for the site.
+3. A data-saver or strict-autoplay setting in a non-Safari browser.
 
 To test the blocked path deliberately: Low Power Mode on, then reload.

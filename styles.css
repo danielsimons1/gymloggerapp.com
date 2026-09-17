@@ -365,17 +365,7 @@ section .sub {
   opacity: 0;
 }
 
-/* The one exception, set by the script: somebody who has asked the system for
-   reduced motion gets the video paused on its poster *with* controls, because
-   otherwise there is no way for them to watch it at all. */
-.preview.is-static {
-  pointer-events: auto;
-}
-
-.preview.is-static::-webkit-media-controls,
-.preview.is-static::-webkit-media-controls-panel,
-.preview.is-static::-webkit-media-controls-overlay-play-button,
-.preview.is-static::-webkit-media-controls-start-playback-button {
-  display: initial !important;
-  opacity: 1;
-}
+/* There is deliberately no reduced-motion exception here any more. It used to
+   pause the video on frame 0 and give it controls, which is how a decorative
+   loop turned into a dead player — including for renderers that report the
+   preference by default rather than because anyone set it. */

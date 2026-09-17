@@ -163,14 +163,14 @@
     </footer>
   </div>
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
-  <!-- The exercise reel. Deferred and lazy on purpose: six Lottie files are
-       about 46KB gzipped for the scheme in use, and none of it is fetched
-       until the section is near the viewport — the hero must not wait on it. -->
+  <!-- The exercise reel. The player is deferred so the hero doesn't wait on
+       it; the six Lottie files (about 46KB gzipped for the scheme in use) are
+       then fetched outright rather than on scroll — see the note in the
+       script about why the lazy version could never finish. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
   <script>
   (function () {
     var dark = window.matchMedia('(prefers-color-scheme: dark)');
-    var still = window.matchMedia('(prefers-reduced-motion: reduce)');
     var players = [];
 
     function file(slug) {
@@ -181,34 +181,37 @@
     }
 
     function mount(el) {
+      if (!window.lottie || el.dataset.mounted) { return; }
+      el.dataset.mounted = '1';
       var anim = lottie.loadAnimation({
-        container: el, renderer: 'svg', loop: !still.matches,
-        autoplay: !still.matches, path: file(el.dataset.anim)
+        container: el, renderer: 'svg', loop: true, autoplay: true,
+        path: file(el.dataset.anim)
       });
-      // Reduced motion gets the pose rather than nothing: the midpoint frame
-      // is the one that says what the movement is, which is the same rule the
-      // app's own still frames are rendered on.
-      if (still.matches) {
-        anim.addEventListener('DOMLoaded', function () {
-          anim.goToAndStop(Math.floor(anim.totalFrames / 2), true);
-        });
-      }
+      // Belt and braces: `autoplay` is a request made before the JSON has
+      // arrived, and a player that loaded while the tab was in the background
+      // can come back parked on frame 0.
+      anim.addEventListener('DOMLoaded', function () { anim.play(); });
       players.push({ el: el, anim: anim });
     }
 
     function start() {
       var reel = document.getElementById('reel');
-      if (!reel || !window.lottie) return;
-      var tiles = [].slice.call(reel.querySelectorAll('.move-art'));
-      if (!('IntersectionObserver' in window)) { tiles.forEach(mount); return; }
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (!e.isIntersecting) return;
-          io.unobserve(e.target);
-          mount(e.target);
-        });
-      }, { rootMargin: '200px' });
-      tiles.forEach(function (t) { io.observe(t); });
+      if (!reel) { return; }
+      [].slice.call(reel.querySelectorAll('.move-art')).forEach(mount);
+    }
+
+    // Mounted outright rather than gated on an IntersectionObserver. The
+    // observer was the bug: its root is the viewport, and anything that
+    // reports a zero-area viewport — a background tab at first paint, an
+    // embedded or headless renderer, some in-app browsers — never fires an
+    // intersection, so the tiles sat empty forever with no error anywhere.
+    // Six files is about 46KB gzipped and they are below the fold; that is
+    // not worth a failure mode where the section is simply blank.
+    if (window.lottie) { start(); }
+    else {
+      // The library is `defer`red, so it may not be here yet at parse time.
+      document.addEventListener('DOMContentLoaded', start);
+      window.addEventListener('load', start);
     }
 
     // Reload the other pack when the system flips, rather than leaving dark
@@ -217,24 +220,23 @@
       players.splice(0).forEach(function (p) {
         p.anim.destroy();
         p.el.innerHTML = '';
+        delete p.el.dataset.mounted;
         mount(p.el);
       });
     });
 
-    // The hero video answers to the same preference the reel does: paused on
-    // its poster frame rather than 26 seconds of movement somebody has asked
-    // the system not to show them. This is the ONE case that gets controls and
-    // a tappable surface — having opted out of the motion, they still need a
-    // way to opt back in — and `is-static` is what re-enables both.
+    // The hero preview. No motion-preference branch: this used to pause the
+    // video on frame 0 and hand it a set of controls whenever the system
+    // reported Reduce Motion, which is a preference plenty of people have on
+    // for reasons that have nothing to do with a silent 26-second loop — and
+    // it is also what several embedded and headless renderers report by
+    // default. The result was the exact complaint: a dead video with a play
+    // button, and a reel of frozen poses beside it. The loop is slow, silent,
+    // has no flashing and no parallax; it plays.
     var hero = document.querySelector('.preview');
-    if (hero && still.matches) {
-      hero.autoplay = false;
-      hero.controls = true;
-      hero.classList.add('is-static');
-      hero.pause();
-    } else if (hero) {
-      // Belt and braces: nothing sets these, but a restored page can carry
-      // state from a previous visit, and `controls` is the whole complaint.
+    if (hero) {
+      // Nothing sets these, but a restored page can carry state from a
+      // previous visit, and `controls` is the whole complaint.
       hero.controls = false;
       hero.removeAttribute('controls');
       // The attribute is the request; this is the retry. `play()` returns a
@@ -247,6 +249,7 @@
       // and an unmuted video is one no browser will start on its own.
       var nudge = function () {
         hero.muted = true;
+        hero.defaultMuted = true;
         var p = hero.play();
         if (p && p.catch) { p.catch(function () { /* left on the poster */ }); }
       };
@@ -281,10 +284,18 @@
       window.addEventListener('pageshow', function () {
         if (hero.paused) { nudge(); }
       });
+      // And a watchdog, because every branch above is edge-triggered and the
+      // states that strand this video are level: an element laid out at zero
+      // height while the tab is backgrounded, a renderer that suspends media
+      // until it has an area, a `play()` that resolves and is then revoked.
+      // In all of those nothing further fires and the loop sits on frame 0
+      // with no error to catch. Twelve seconds of asking, then it stops.
+      var tries = 0;
+      var watchdog = setInterval(function () {
+        if (!hero.paused || ++tries > 15) { clearInterval(watchdog); return; }
+        nudge();
+      }, 800);
     }
-
-    if (document.readyState === 'complete') { start(); }
-    else { window.addEventListener('load', start); }
   })();
   </script>
 </body>
