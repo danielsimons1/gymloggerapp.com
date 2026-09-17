@@ -21,7 +21,7 @@
   <div class="wrap">
     <header class="site-header">
       <a class="brand" href="/">
-        <img src="/assets/icon-rounded.png" alt="" width="32" height="32">
+        <img src="/assets/mark-64.png" alt="" width="32" height="32">
         Routine
       </a>
       <nav class="site-nav">
@@ -44,7 +44,15 @@
           <p class="fine">iPhone · Your first workouts are free.</p>
         </div>
         <div class="hero-art">
-          <img src="/assets/icon-512.png" alt="The Routine app icon" width="280" height="280">
+          <!-- The App Store preview, no audio track and none needed. `muted`
+               and `playsinline` are what make autoplay legal on iOS; without
+               either, Safari shows a poster and a play button instead. -->
+          <video class="preview" width="270" height="585"
+                 poster="/assets/preview-poster.jpg"
+                 autoplay muted loop playsinline preload="metadata"
+                 aria-label="Routine on iPhone: picking a workout, logging sets, and finishing a session.">
+            <source src="/assets/preview.mp4" type="video/mp4">
+          </video>
         </div>
       </section>
 
@@ -201,6 +209,16 @@
         mount(p.el);
       });
     });
+
+    // The hero video answers to the same preference the reel does: paused on
+    // its poster frame, with controls, rather than 26 seconds of movement
+    // somebody has asked the system not to show them.
+    var hero = document.querySelector('.preview');
+    if (hero && still.matches) {
+      hero.autoplay = false;
+      hero.controls = true;
+      hero.pause();
+    }
 
     if (document.readyState === 'complete') { start(); }
     else { window.addEventListener('load', start); }
