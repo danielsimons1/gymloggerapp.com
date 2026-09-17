@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512" role="img" aria-labelledby="t d">
+  <title id="t">Gym Logger</title>
+  <desc id="d">Three weight plates standing on end, each taller than the last.</desc>
+  <!-- Plates on end, not chart bars: the corner radius is half the width, so
+       they read as objects with thickness rather than as columns. -->
+  <rect x="10" y="56" width="21" height="30" rx="9" fill="#141414"/>
+  <rect x="39" y="38" width="21" height="48" rx="9" fill="#141414"/>
+  <rect x="68" y="16" width="21" height="70" rx="9" fill="#1a8540"/>
+</svg>

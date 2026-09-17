@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 76" width="800" height="152" role="img" aria-labelledby="t d">
+  <title id="t">Gym Logger</title>
+  <desc id="d">The Plate G mark beside the words Gym Logger, with Logger in green.</desc>
+  <!-- The mark at 64%, so its cap height matches the type rather than its
+       overall box — a mark set to the same height as the letters always reads
+       as slightly too small. -->
+  <g transform="translate(4,6) scale(0.64)">
+    <path d="M 88.06 32.25 A 42 42 0 1 0 88.06 67.75"
+          fill="none" stroke="#141414" stroke-width="14" stroke-linecap="round"/>
+    <path d="M 88 50 L 62 50"
+          fill="none" stroke="#1a8540" stroke-width="14" stroke-linecap="round"/>
+  </g>
+  <!-- Live text, deliberately. Convert to outlines before this ships anywhere
+       that isn't a Mac: the fallback stack is a different width on every
+       platform, and the lockup's spacing is drawn for SF. -->
+  <text x="80" y="49" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Helvetica, Arial, sans-serif"
+        font-size="34" font-weight="700" letter-spacing="-1.1" fill="#141414">Gym</text>
+  <text x="147" y="49" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Helvetica, Arial, sans-serif"
+        font-size="34" font-weight="700" letter-spacing="-1.1" fill="#1a8540">Logger</text>
+</svg>

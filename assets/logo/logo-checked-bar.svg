@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" width="614" height="512" role="img" aria-labelledby="t d">
+  <title id="t">Gym Logger</title>
+  <desc id="d">A loaded barbell whose shaft is drawn as a checkmark.</desc>
+  <!-- Four plates, outer pair taller — the standard way a loaded bar reads in
+       silhouette, and what keeps this legible once the shaft is a tick. -->
+  <g fill="#141414">
+    <rect x="6" y="28" width="11" height="44" rx="5.5"/>
+    <rect x="23" y="36" width="11" height="28" rx="5.5"/>
+    <rect x="86" y="36" width="11" height="28" rx="5.5"/>
+    <rect x="103" y="28" width="11" height="44" rx="5.5"/>
+  </g>
+  <!-- The shaft, and the tick. Round joins so the corner reads as one stroke. -->
+  <path d="M 38 50 L 52 66 L 82 26"
+        fill="none" stroke="#1a8540" stroke-width="13"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

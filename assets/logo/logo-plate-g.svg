@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512" role="img" aria-labelledby="t d">
+  <title id="t">Gym Logger</title>
+  <desc id="d">A weight plate seen face-on whose opening and crossbar form a letter G.</desc>
+  <!-- The plate. A gap on the right turns the ring into a G; round caps so the
+       two ends read as a cut rather than a break. -->
+  <path d="M 88.06 32.25 A 42 42 0 1 0 88.06 67.75"
+        fill="none" stroke="#141414" stroke-width="14" stroke-linecap="round"/>
+  <!-- The bar, sliding into the plate. The only colour in the mark. -->
+  <path d="M 88 50 L 62 50"
+        fill="none" stroke="#1a8540" stroke-width="14" stroke-linecap="round"/>
+</svg>

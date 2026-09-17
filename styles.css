@@ -1,15 +1,25 @@
 /* Gym Logger — gymloggerapp.com
-   One stylesheet, no build. The palette is the app's: warm off-white page,
-   near-black ink, one green for the affirmative. */
+   One stylesheet, no build.
+
+   The palette is the app icon's, so the site and the thing it's selling agree:
+   the two grounds the icon ships on — #F4F1EB light, #0E0D0C dark — and the
+   blue ramp the mark is drawn in. The green this replaced belonged to an
+   earlier identity and appeared nowhere in the product. */
 
 :root {
-  --page: #f7f5f0;
+  --page: #f4f1eb;          /* the light icon's ground */
   --surface: #ffffff;
   --ink: #141414;
   --subtle: #6b6b6b;
   --hairline: rgba(20, 20, 20, 0.12);
-  --green: #1a8540;
-  --green-fill: #a8dbba;
+  /* The saturated end of the mark's ramp. Used for rules and accents, never
+     for small text on the page: at 3.2:1 against white it clears large-text
+     contrast and nothing narrower. */
+  --accent: #0a84ff;
+  /* The pale end, which is a *fill* and carries ink rather than white. */
+  --accent-soft: #a9d9ff;
+  /* The mark's own gradient, top to bottom, used once — see .feature. */
+  --ramp: linear-gradient(180deg, #0a84ff 0%, #6fbbff 62%, #a9d9ff 100%);
   --radius: 14px;
   --gutter: 20px;
   --measure: 62ch;
@@ -17,13 +27,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --page: #101010;
-    --surface: #1a1a1a;
-    --ink: #f2f2f2;
-    --subtle: #9a9a9a;
-    --hairline: rgba(255, 255, 255, 0.14);
-    --green: #4dd970;
-    --green-fill: #2f6a43;
+    --page: #0e0d0c;        /* the dark icon's ground */
+    --surface: #1a1918;
+    --ink: #f4f1eb;
+    --subtle: #9a9795;
+    --hairline: rgba(244, 241, 235, 0.14);
+    /* A step along the ramp rather than the same blue: #0a84ff on near-black
+       is 3.4:1, which is thin for a hairline you're meant to notice. */
+    --accent: #6fbbff;
+    --accent-soft: #123a5e;
+    --ramp: linear-gradient(180deg, #6fbbff 0%, #4a9ae0 62%, #2c6ea8 100%);
   }
 }
 
@@ -112,7 +125,12 @@ a { color: inherit; }
 .hero-art img {
   width: min(280px, 60vw);
   height: auto;
-  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.18));
+  /* The app icon as a tile, masked the way iOS masks it. It used to be the
+     bare mark with a drop shadow under it, which is a shadow cast by nothing —
+     and it showed people a logo rather than the thing they're about to tap on
+     a home screen. */
+  border-radius: 22%;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
 }
 
 /* Buttons */
@@ -181,7 +199,7 @@ section .sub {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--green-fill);
+  background: var(--accent-soft);
   color: var(--ink);
   font-weight: 700;
   margin-bottom: 14px;
@@ -198,7 +216,11 @@ section .sub {
 
 .feature {
   padding: 22px;
-  border-top: 2px solid var(--green);
+  /* The mark's ramp, used once. `border-image` rather than a pseudo-element:
+     a gradient border is the whole reason the rule is 3px instead of 2 — at 2
+     the three stops are indistinguishable from a flat blue. */
+  border-top: 3px solid var(--accent);
+  border-image: var(--ramp) 1;
 }
 
 .principles {
@@ -235,7 +257,7 @@ section .sub {
 .prose .callout {
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-left: 3px solid var(--green);
+  border-left: 3px solid var(--accent);
   border-radius: 10px;
   padding: 14px 18px;
   margin: 20px 0;
