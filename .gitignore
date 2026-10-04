@@ -1,1 +1,6 @@
 .DS_Store
+# Nothing here needs dependencies — `npm run dev` is a zero-dependency Node
+# script. This entry is so that a stray `npm install` of something can never
+# end up in the repo.
+node_modules/
+package-lock.json

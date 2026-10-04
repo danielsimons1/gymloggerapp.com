@@ -1,0 +1,9 @@
+{
+  "name": "gymloggerapp.com",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The website for Routine, the gym logger. No build step: the files in this repo are the files GitHub Pages serves.",
+  "scripts": {
+    "dev": "node scripts/dev.js"
+  }
+}

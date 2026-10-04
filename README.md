@@ -3,6 +3,11 @@
 The website for Routine, the gym logger. Static HTML and CSS, no build step, hosted on
 GitHub Pages at https://gymloggerapp.com.
 
+Still static, including `/admin/`: that page is HTML and JavaScript that runs in
+the browser and calls the Parse server's API. Nothing here renders on a server,
+there is no build output, and the files in this repo are exactly what gets
+deployed. `npm run dev` is a convenience for local work, not a build step.
+
 ## Pages
 
 | File           | Purpose                                                   |
@@ -14,6 +19,25 @@ GitHub Pages at https://gymloggerapp.com.
 | `admin/`       | Internal feedback tool — see below                         |
 | `styles.css`   | The one stylesheet                                        |
 | `assets/`      | Icons, derived from the app's `AppIcon.png`               |
+| `scripts/`     | The dev server. Not deployed — see Running it locally      |
+
+## Running it locally
+
+```
+npm run dev
+```
+
+Serves the repo at `http://localhost:8000`, with the admin tool at
+`http://localhost:8000/admin/`. Live reload is built in, so saving a file
+refreshes every open tab.
+
+**No `npm install` needed** — `scripts/dev.js` is sixty lines of `node:http`
+with zero dependencies. `live-server` was the obvious choice and wanted 191
+packages, which is the wrong trade for a site that otherwise has none.
+
+Use this rather than opening the HTML files directly. A `file://` page has a
+null origin, so the admin tool's requests to the Parse server fail CORS and it
+cannot be tested that way. The rest of the site opens fine as plain files.
 
 ## Deploying
 
@@ -97,20 +121,47 @@ which require a signed-in user whose email is `ADMIN_EMAIL`
 (`support+admin@gymloggerapp.com`) **and** whose address is verified. Loading
 the page without that session gets you a login form and nothing else.
 
-The email-verified check is the part worth not removing. Without it, anyone
+The `emailVerified` check is the part worth not removing. Without it, anyone
 could sign up claiming the admin address and read every message in the system.
+
+On this server it means something slightly different from the usual, and
+stronger: since Parse forbids clients from writing `emailVerified` and nothing
+here sends verification mail, the flag can only mean "an operator with the
+master key created this account deliberately".
 
 ### Setup, once
 
-1. Create a Parse user with that email — sign up through the app, or via the
-   REST API — and verify the address by following the emailed link. Feedback
-   email has to be working for that link to arrive; see the Mailgun DNS note in
-   `LiftPlan-Server/README.md`.
-2. Set `ADMIN_EMAIL` on the server if you want a different address. It defaults
-   to `support+admin@gymloggerapp.com`.
-3. Nothing to configure in the page. The three Parse values in it are the same
-   ones in the iOS app's `Config.swift`, and the client key is not a secret —
-   it ships inside every copy of the app on the App Store.
+Signing up through the app does **not** produce a usable admin: `emailVerified`
+is master-key-only in Parse, `masterKeyIps` blocks the master key from anywhere
+but the server itself, and this server has no email adapter so no verification
+link is ever sent. The `createAdminUser` cloud function exists for exactly this,
+guarded by `X-Admin-Key` rather than by a session — because there is no admin
+yet when you need it.
+
+1. Set `FEEDBACK_ADMIN_KEY` on the server to a long random string, if it is not
+   already set. An unset value grants nothing, so this is required.
+2. Call it, substituting your own password:
+
+   ```
+   curl -X POST https://liftplan-server.onrender.com/parse/functions/createAdminUser \
+     -H 'X-Parse-Application-Id: liftplan' \
+     -H 'X-Parse-Client-Key: 73d811b372f412119fb0a28b4c54185c53d66b1fb4accf45' \
+     -H 'X-Admin-Key: <FEEDBACK_ADMIN_KEY>' \
+     -H 'Content-Type: application/json' \
+     -d '{"password":"<a long password>"}'
+   ```
+
+   It is idempotent: run it again and it resets the password rather than
+   failing, which is what you want from the thing you reach for when locked
+   out. It will only ever touch `ADMIN_EMAIL`.
+3. Sign in at `/admin/` with that email and password.
+
+`ADMIN_EMAIL` defaults to `support+admin@gymloggerapp.com`; set it on the server
+to use a different address.
+
+Nothing to configure in the page. The three Parse values in it are the same ones
+in the iOS app's `Config.swift`, and the client key is not a secret — it ships
+inside every copy of the app on the App Store.
 
 ### Reading the table
 
