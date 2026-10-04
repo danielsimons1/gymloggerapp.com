@@ -11,6 +11,7 @@ GitHub Pages at https://gymloggerapp.com.
 | `privacy.html` | Privacy policy — the URL App Store Connect asks for       |
 | `terms.html`   | Terms of use — replaces Apple's standard EULA in the app  |
 | `support.html` | Support contact and common questions — also for App Store |
+| `admin/`       | Internal feedback tool — see below                         |
 | `styles.css`   | The one stylesheet                                        |
 | `assets/`      | Icons, derived from the app's `AppIcon.png`               |
 
@@ -83,3 +84,37 @@ Three things still decline autoplay, in rough order of how often:
 3. A data-saver or strict-autoplay setting in a non-Safari browser.
 
 To test the blocked path deliberately: Low Power Mode on, then reload.
+
+## The admin tool
+
+`/admin/` lists everything users have sent through the app's feedback form and
+Contact us row, and lets you reply by email.
+
+**It is a public URL, and that is fine.** The page is static HTML on GitHub
+Pages, so it can keep no secrets and enforce nothing. The access control lives
+in the `listFeedback` and `replyToFeedback` cloud functions on the Parse server,
+which require a signed-in user whose email is `ADMIN_EMAIL`
+(`support+admin@gymloggerapp.com`) **and** whose address is verified. Loading
+the page without that session gets you a login form and nothing else.
+
+The email-verified check is the part worth not removing. Without it, anyone
+could sign up claiming the admin address and read every message in the system.
+
+### Setup, once
+
+1. Create a Parse user with that email — sign up through the app, or via the
+   REST API — and verify the address by following the emailed link. Feedback
+   email has to be working for that link to arrive; see the Mailgun DNS note in
+   `LiftPlan-Server/README.md`.
+2. Set `ADMIN_EMAIL` on the server if you want a different address. It defaults
+   to `support+admin@gymloggerapp.com`.
+3. Nothing to configure in the page. The three Parse values in it are the same
+   ones in the iOS app's `Config.swift`, and the client key is not a secret —
+   it ships inside every copy of the app on the App Store.
+
+### Reading the table
+
+Each row shows the sentiment, the reason, when it arrived, the app version, the
+sender, and whether the notification to `support@` actually sent. That last one
+matters: a row marked **notification not sent** is a message nobody was told
+about, which from an inbox is indistinguishable from a message nobody wrote.

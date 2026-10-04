@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Not a secret, but no reason to be in an index either. The real gate is the
+     cloud function; this just keeps the page out of search results. -->
+<meta name="robots" content="noindex, nofollow">
+<title>Routine Admin</title>
+<link rel="icon" href="../assets/favicon-32.png">
+<style>
+/* Standalone rather than reusing styles.css: that sheet is the marketing site's
+   and will change for reasons that have nothing to do with this tool. A dense
+   table has no business constraining a landing page's typography. */
+:root {
+  --ink: #16181d;
+  --subtle: #6b7280;
+  --faint: #f3f4f6;
+  --line: #e5e7eb;
+  --bg: #fff;
+  --blue: #0d66d9;
+  --green: #29a052;
+  --red: #d8484d;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 20px; border-bottom: 1px solid var(--line);
+}
+header h1 { font-size: 16px; margin: 0; }
+header .who { margin-left: auto; color: var(--subtle); font-size: 13px; }
+button {
+  font: inherit; cursor: pointer; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink);
+  border-radius: 8px; padding: 7px 12px;
+}
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.wide { width: 100%; margin-top: 14px; }
+button:disabled { opacity: .5; cursor: default; }
+input, textarea, select {
+  font: inherit; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%;
+}
+textarea { min-height: 90px; resize: vertical; }
+
+/* Tabs. One for now; the row exists so the second costs nothing. */
+nav { display: flex; gap: 4px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+nav button {
+  border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  padding: 10px 12px; color: var(--subtle);
+}
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+
+main { padding: 20px; max-width: 1100px; }
+.signin { max-width: 320px; margin: 60px auto; }
+.signin label { display: block; margin: 14px 0 4px; font-size: 13px; color: var(--subtle); }
+.error { color: var(--red); font-size: 13px; margin-top: 12px; }
+.muted { color: var(--subtle); }
+
+.filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.filters input { flex: 1 1 220px; }
+.filters select { flex: 0 0 160px; }
+
+.row {
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px; margin-bottom: 10px;
+}
+.row .meta {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  font-size: 13px; color: var(--subtle); margin-bottom: 8px;
+}
+.pill { border-radius: 99px; padding: 2px 8px; font-size: 12px; background: var(--faint); }
+.pill.negative { background: #fdecec; color: #9b2c2f; }
+.pill.positive { background: #e8f6ed; color: #1d6b38; }
+.pill.neutral  { background: #e9f0fb; color: #1b4f91; }
+/* The notification that never arrived. Loud on purpose: it is the difference
+   between "nobody wrote in" and "ten people did and the mail bounced". */
+.pill.unsent { background: #fdecec; color: #9b2c2f; }
+/* `pre-wrap` because people write paragraphs and newlines are theirs. */
+.row .msg { white-space: pre-wrap; }
+.row .reply { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 12px; }
+.row .sent { color: var(--green); font-size: 13px; }
+.pager { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div id="signin" class="signin">
+  <h1>Routine Admin</h1>
+  <p class="muted">Sign in with the support admin account.</p>
+  <label for="email">Email</label>
+  <input id="email" type="email" autocomplete="username">
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <p><button type="button" class="primary wide" id="signinButton">Sign in</button></p>
+  <p class="error" id="signinError" hidden></p>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <h1>Routine Admin</h1>
+    <span class="who" id="who"></span>
+    <button type="button" id="signout">Sign out</button>
+  </header>
+  <nav>
+    <button type="button" role="tab" aria-selected="true" data-tab="feedback">User Feedback</button>
+  </nav>
+  <main>
+    <div class="filters">
+      <input id="search" type="search" placeholder="Search messages">
+      <select id="sentiment">
+        <option value="">All sentiments</option>
+        <option value="negative">Negative</option>
+        <option value="neutral">Neutral (Contact us)</option>
+        <option value="positive">Positive</option>
+      </select>
+      <button type="button" id="refresh">Refresh</button>
+    </div>
+    <div id="rows"></div>
+    <div class="pager">
+      <button type="button" id="prev">Previous</button>
+      <button type="button" id="next">Next</button>
+      <span class="muted" id="count"></span>
+    </div>
+  </main>
+</div>
+
+<script>
+// Same three values the iOS app carries in Config.swift. The client key is not
+// a secret in any meaningful sense — it ships inside every copy of the app on
+// the App Store and anyone can read it out of the binary. What keeps this page
+// safe is that `listFeedback` checks the session user's email server-side; the
+// key only gets you as far as the login endpoint.
+const PARSE_URL = 'https://liftplan-server.onrender.com/parse';
+const APP_ID = 'liftplan';
+const CLIENT_KEY = '73d811b372f412119fb0a28b4c54185c53d66b1fb4accf45';
+
+// sessionStorage, not localStorage: the token dies with the tab. This is a
+// support tool opened occasionally on whatever machine is to hand, and a
+// session that outlives the window is a session someone else can find.
+const TOKEN_KEY = 'routineAdminSession';
+
+const state = { skip: 0, limit: 25, total: 0 };
+
+function headers(extra) {
+  return Object.assign({
+    'X-Parse-Application-Id': APP_ID,
+    'X-Parse-Client-Key': CLIENT_KEY,
+    'Content-Type': 'application/json'
+  }, extra || {});
+}
+
+async function callFunction(name, params) {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  const response = await fetch(`${PARSE_URL}/functions/${name}`, {
+    method: 'POST',
+    headers: headers(token ? { 'X-Parse-Session-Token': token } : {}),
+    body: JSON.stringify(params || {})
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`);
+  return body.result;
+}
+
+async function signIn(email, password) {
+  const response = await fetch(`${PARSE_URL}/login`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ username: email, password })
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || 'Could not sign in.');
+  return body;
+}
+
+function show(signedIn, email) {
+  document.getElementById('signin').hidden = signedIn;
+  document.getElementById('app').hidden = !signedIn;
+  if (signedIn) document.getElementById('who').textContent = email || '';
+}
+
+function escapeHtml(value) {
+  // Everything below is somebody else's text going into innerHTML. Escaped at
+  // the one place it crosses over rather than trusted because it came from our
+  // own server — the server stores exactly what the user typed, which is the
+  // definition of untrusted.
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function formatDate(value) {
+  const raw = value && value.iso ? value.iso : value;
+  if (!raw) return '';
+  return new Date(raw).toLocaleString();
+}
+
+function renderRows(rows) {
+  const container = document.getElementById('rows');
+  if (!rows.length) {
+    container.innerHTML = '<p class="muted">No feedback matches that.</p>';
+    return;
+  }
+  container.innerHTML = rows.map((row) => {
+    const sentiment = row.sentiment || 'neutral';
+    const replied = row.repliedAt
+      ? `<p class="sent">Replied ${escapeHtml(formatDate(row.repliedAt))}</p>
+         <p class="msg muted">${escapeHtml(row.replyMessage)}</p>`
+      : '';
+    const canReply = Boolean(row.userEmail);
+    return `
+      <div class="row" data-id="${escapeHtml(row.id)}">
+        <div class="meta">
+          <span class="pill ${escapeHtml(sentiment)}">${escapeHtml(sentiment)}</span>
+          ${row.reason ? `<span class="pill">${escapeHtml(row.reason)}</span>` : ''}
+          <span>${escapeHtml(formatDate(row.createdAt))}</span>
+          <span>${escapeHtml(row.appVersion || 'version not reported')}</span>
+          <span>${escapeHtml(row.userEmail || 'no email on file')}</span>
+          <span>${escapeHtml(row.userId || '')}</span>
+          ${row.emailed ? '' : '<span class="pill unsent">notification not sent</span>'}
+        </div>
+        <div class="msg">${escapeHtml(row.message)}</div>
+        ${replied}
+        <div class="reply">
+          ${canReply
+            ? `<textarea placeholder="Write a reply to ${escapeHtml(row.userEmail)}"></textarea>
+               <p><button type="button" class="primary reply-send">Send reply</button>
+               <span class="muted result"></span></p>`
+            : '<p class="muted">No email address on this account, so there is nobody to reply to.</p>'}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function load() {
+  const container = document.getElementById('rows');
+  container.innerHTML = '<p class="muted">Loading…</p>';
+  try {
+    const result = await callFunction('listFeedback', {
+      limit: state.limit,
+      skip: state.skip,
+      sentiment: document.getElementById('sentiment').value,
+      search: document.getElementById('search').value
+    });
+    state.total = result.total;
+    renderRows(result.rows);
+    const from = result.total ? state.skip + 1 : 0;
+    const to = Math.min(state.skip + state.limit, result.total);
+    document.getElementById('count').textContent = `${from}–${to} of ${result.total}`;
+    document.getElementById('prev').disabled = state.skip === 0;
+    document.getElementById('next').disabled = to >= result.total;
+  } catch (error) {
+    // An expired or revoked token looks exactly like this, and the honest
+    // response is to show the login again rather than an error nobody can act
+    // on.
+    if (/session|token|permitted/i.test(error.message)) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      show(false);
+      return;
+    }
+    container.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+document.getElementById('signinButton').addEventListener('click', async () => {
+  const button = document.getElementById('signinButton');
+  const error = document.getElementById('signinError');
+  error.hidden = true;
+  button.disabled = true;
+  try {
+    const user = await signIn(
+      document.getElementById('email').value.trim(),
+      document.getElementById('password').value
+    );
+    sessionStorage.setItem(TOKEN_KEY, user.sessionToken);
+    // The password field is cleared rather than left sitting in the DOM.
+    document.getElementById('password').value = '';
+    show(true, user.email);
+    load();
+  } catch (e) {
+    error.textContent = e.message;
+    error.hidden = false;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById('password').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') document.getElementById('signinButton').click();
+});
+
+document.getElementById('signout').addEventListener('click', () => {
+  sessionStorage.removeItem(TOKEN_KEY);
+  show(false);
+});
+
+document.getElementById('refresh').addEventListener('click', () => { state.skip = 0; load(); });
+document.getElementById('sentiment').addEventListener('change', () => { state.skip = 0; load(); });
+let searchTimer;
+document.getElementById('search').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.skip = 0; load(); }, 300);
+});
+document.getElementById('prev').addEventListener('click', () => {
+  state.skip = Math.max(0, state.skip - state.limit);
+  load();
+});
+document.getElementById('next').addEventListener('click', () => {
+  state.skip += state.limit;
+  load();
+});
+
+// Delegated, because the rows are replaced wholesale on every load and
+// listeners bound to them would be rebound on each render or leak.
+document.getElementById('rows').addEventListener('click', async (event) => {
+  const button = event.target.closest('.reply-send');
+  if (!button) return;
+  const row = button.closest('.row');
+  const textarea = row.querySelector('textarea');
+  const result = row.querySelector('.result');
+  const message = textarea.value.trim();
+  if (!message) return;
+  button.disabled = true;
+  result.textContent = 'Sending…';
+  try {
+    const sent = await callFunction('replyToFeedback', { id: row.dataset.id, message });
+    // `sent: false` means Mailgun refused or was unreachable. The reply is
+    // stored either way, which is worth saying rather than showing a bare
+    // failure: the words are not lost.
+    result.textContent = sent.sent
+      ? 'Sent.'
+      : 'Saved, but the email did not send — check the Mailgun domain.';
+    textarea.value = '';
+  } catch (error) {
+    result.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+if (sessionStorage.getItem(TOKEN_KEY)) {
+  // A token from a previous load in this tab. It is checked by using it: if the
+  // server rejects it, `load` puts the sign-in back.
+  show(true);
+  load();
+} else {
+  show(false);
+}
+</script>
+</body>
+</html>

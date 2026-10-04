@@ -1,0 +1,5 @@
+# The admin tool is a public URL with a server-side gate, not a secret one.
+# Keeping it out of the index is tidiness, not security: anyone who loads it
+# without the support admin's session sees a login form and nothing else.
+User-agent: *
+Disallow: /admin/
